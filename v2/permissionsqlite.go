@@ -1,10 +1,11 @@
-// Package permissionsql provides a way to keeping track of users, login states and permissions.
-package permissionsql
+// Package permissionsqlite provides a way to keeping track of users, login states and permissions.
+package permissionsqlite
 
 import (
-	"github.com/xyproto/pinterface"
 	"net/http"
 	"strings"
+
+	"github.com/xyproto/pinterface"
 )
 
 // The structure that keeps track of the permissions for various path prefixes
@@ -35,15 +36,6 @@ func New() (*Permissions, error) {
 // Initialize a Permissions struct with a database connection string
 func NewWithConf(connectionString string) (*Permissions, error) {
 	state, err := NewUserState(connectionString, true)
-	if err != nil {
-		return nil, err
-	}
-	return NewPermissions(state), nil
-}
-
-// Initialize a Permissions struct with a dsn
-func NewWithDSN(connectionString string, database_name string) (*Permissions, error) {
-	state, err := NewUserStateWithDSN(connectionString, database_name, true)
 	if err != nil {
 		return nil, err
 	}

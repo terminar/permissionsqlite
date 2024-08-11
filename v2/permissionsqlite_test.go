@@ -1,4 +1,4 @@
-package permissionsql
+package permissionsqlite
 
 import (
 	"testing"
