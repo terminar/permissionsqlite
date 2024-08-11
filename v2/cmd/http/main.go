@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/xyproto/permissionsql/v2"
+	"github.com/terminar/permissionsqlite/v2"
 	"github.com/xyproto/pinterface"
 )
 
@@ -40,7 +40,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// New permissions middleware
-	perm, err := permissionsql.New()
+	perm, err := permissionsqlite.New()
 	if err != nil {
 		log.Fatalln(err)
 	}

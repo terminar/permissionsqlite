@@ -1,4 +1,4 @@
-package permissionsql
+package permissionsqlite
 
 import (
 	"errors"
@@ -7,14 +7,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/xyproto/cookie/v2"      // For cookies
-	"github.com/xyproto/pinterface"     // For interfaces
-	db "github.com/xyproto/simplemaria" // MariaDB/MySQL database wrapper
+	db "github.com/terminar/simplesqlite" // SQLite database wrapper
+	"github.com/xyproto/cookie/v2"        // For cookies
+	"github.com/xyproto/pinterface"       // For interfaces
 )
 
 const (
-	// username:password@host:port/database
-	defaultConnectionString = "localhost:3306/"
+	defaultConnectionString = "sqlite.db"
 )
 
 var (
@@ -35,7 +34,7 @@ type UserState struct {
 	users             *db.HashMap // Hash map of users, with several different fields per user ("loggedin", "confirmed", "email" etc)
 	usernames         *db.Set     // A list of all usernames, for easy enumeration
 	unconfirmed       *db.Set     // A list of unconfirmed usernames, for easy enumeration
-	host              *db.Host    // A database host
+	file              *db.File    // A database file
 	cookieSecret      string      // Secret for storing secure cookies
 	cookieTime        int64       // How long a cookie should last, in seconds
 	passwordAlgorithm string      // The hashing algorithm to utilize default: "bcrypt+" allowed: ("sha256", "bcrypt", "bcrypt+")
@@ -43,94 +42,40 @@ type UserState struct {
 
 // Create a new *UserState that can be used for managing users.
 // The random number generator will be seeded after generating the cookie secret.
-// A Host* for the local MariaDB/MySQL server will be created.
+// A File* for the local SQLite file will be created.
 func NewUserStateSimple() (*UserState, error) {
 	// connection string | initialize random generator after generating the cookie secret
 	return NewUserState(defaultConnectionString, true)
 }
 
 // Create a new *UserState that can be used for managing users.
-// connectionString may be on the form "username:password@host:port/database".
-// If randomseed is true, the random number generator will be seeded after generating the cookie secret (true is a good default value).
-func NewUserStateWithDSN(connectionString string, database_name string, randomseed bool) (*UserState, error) {
-	// Test connection
-	if err := db.TestConnectionHostWithDSN(connectionString); err != nil {
-		return nil, err
-	}
-
-	host := db.NewHostWithDSN(connectionString, database_name)
-
-	state := new(UserState)
-
-	var err error
-	state.users, err = db.NewHashMap(host, "users")
-	if err != nil {
-		return nil, err
-	}
-	state.usernames, err = db.NewSet(host, "usernames")
-	if err != nil {
-		return nil, err
-	}
-	state.unconfirmed, err = db.NewSet(host, "unconfirmed")
-	if err != nil {
-		return nil, err
-	}
-
-	state.host = host
-
-	// For the secure cookies
-	// This must happen before the random seeding, or
-	// else people will have to log in again after every server restart
-	state.cookieSecret = cookie.RandomCookieFriendlyString(30)
-
-	// Seed the random number generator
-	if randomseed {
-		rand.Seed(time.Now().UnixNano())
-	}
-
-	// Cookies lasts for 24 hours by default. Specified in seconds.
-	state.cookieTime = 3600 * 24
-
-	// Default password hashing algorithm is "bcrypt+", which is the same as
-	// "bcrypt", but with backwards compatibility for checking sha256 hashes.
-	state.passwordAlgorithm = "bcrypt+" // "bcrypt+", "bcrypt" or "sha256"
-
-	if err := host.Ping(); err != nil {
-		defer host.Close()
-		return nil, fmt.Errorf("Error when pinging %s: %s", connectionString, err)
-	}
-
-	return state, nil
-}
-
-// Create a new *UserState that can be used for managing users.
-// connectionString may be on the form "username:password@host:port/database".
+// connectionString may be on the form "sqlite.db&cache=shared&mode=memory".
 // If randomseed is true, the random number generator will be seeded after generating the cookie secret (true is a good default value).
 func NewUserState(connectionString string, randomseed bool) (*UserState, error) {
 	// Test connection
-	if err := db.TestConnectionHost(connectionString); err != nil {
+	if err := db.TestConnectionFile(connectionString); err != nil {
 		return nil, err
 	}
 
-	host := db.NewHost(connectionString)
+	file := db.NewFile(connectionString)
 
 	state := new(UserState)
 
 	var err error
-	state.users, err = db.NewHashMap(host, "users")
+	state.users, err = db.NewHashMap(file, "users")
 	if err != nil {
 		return nil, err
 	}
-	state.usernames, err = db.NewSet(host, "usernames")
+	state.usernames, err = db.NewSet(file, "usernames")
 	if err != nil {
 		return nil, err
 	}
-	state.unconfirmed, err = db.NewSet(host, "unconfirmed")
+	state.unconfirmed, err = db.NewSet(file, "unconfirmed")
 	if err != nil {
 		return nil, err
 	}
 
-	state.host = host
+	state.file = file
 
 	// For the secure cookies
 	// This must happen before the random seeding, or
@@ -149,22 +94,22 @@ func NewUserState(connectionString string, randomseed bool) (*UserState, error) 
 	// "bcrypt", but with backwards compatibility for checking sha256 hashes.
 	state.passwordAlgorithm = "bcrypt+" // "bcrypt+", "bcrypt" or "sha256"
 
-	if err := host.Ping(); err != nil {
-		defer host.Close()
+	if err := file.Ping(); err != nil {
+		defer file.Close()
 		return nil, fmt.Errorf("Error when pinging %s: %s", connectionString, err)
 	}
 
 	return state, nil
 }
 
-// Get the database host
+// Get the database "host" (file)
 func (state *UserState) Host() pinterface.IHost {
-	return state.host
+	return state.file
 }
 
-// Close the connection to the database host
+// Close the connection to the database
 func (state *UserState) Close() {
-	state.host.Close()
+	state.file.Close()
 }
 
 // Check if the current user is logged in and has user rights.
@@ -616,5 +561,5 @@ NEXT:
 
 // Return a struct for creating datastructures
 func (state *UserState) Creator() pinterface.ICreator {
-	return db.NewCreator(state.host)
+	return db.NewCreator(state.file)
 }

@@ -1,4 +1,4 @@
-package permissionsql
+package permissionsqlite
 
 import (
 	"testing"
@@ -7,14 +7,13 @@ import (
 )
 
 const (
-	// "username:password@host:port/database"
-	connectionString = "travis:@127.0.0.1/" // for Travis-CI
+	connectionString = "sqlite.db"
 )
 
 func TestPerm(t *testing.T) {
 	//db.Verbose = true
 
-	//userstate := NewUserStateSimple() // for localhost
+	//userstate := NewUserStateSimple()
 	userstate, err := NewUserState(connectionString, true)
 	if err != nil {
 		t.Error(err)

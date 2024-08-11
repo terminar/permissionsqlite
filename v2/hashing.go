@@ -1,11 +1,12 @@
-package permissionsql
+package permissionsqlite
 
 import (
 	"crypto/sha256"
 	"crypto/subtle"
 
-	"golang.org/x/crypto/bcrypt"
 	"io"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Hash the password with sha256 (the username is needed for salting)
