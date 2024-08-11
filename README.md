@@ -1,4 +1,4 @@
-# PermissionSQLite [![GoDoc](https://godoc.org/github.com/terminar/permissionsqlite?status.svg)](http://godoc.org/github.com/terminar/permissionsqlite)
+# PermissionSQLite [![GoDoc](https://godoc.org/github.com/terminar/permissionsqlite/v2?status.svg)](http://godoc.org/github.com/terminar/permissionsqlite/v2)
 
 Middleware for keeping track of users, login states and permissions.
 
