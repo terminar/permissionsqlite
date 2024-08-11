@@ -1,16 +1,15 @@
-# PermissionSQL [![GoDoc](https://godoc.org/github.com/xyproto/permissionsql?status.svg)](http://godoc.org/github.com/xyproto/permissionsql)
+# PermissionSQLite [![GoDoc](https://godoc.org/github.com/terminar/permissionsqlite?status.svg)](http://godoc.org/github.com/terminar/permissionsqlite)
 
 Middleware for keeping track of users, login states and permissions.
 
 ## Online API Documentation
 
-[godoc.org](http://godoc.org/github.com/xyproto/permissionsql)
+[godoc.org](http://godoc.org/github.com/terminar/permissionsqlite)
 
 ## Features and limitations
 
-* Uses secure cookies and stores user information in a MariaDB/MySQL database.
-* Suitable for running a local MariaDB/MySQL server, registering/confirming users and managing public/user/admin pages.
-* Also supports connecting to remote MariaDB/MySQL servers.
+* Uses secure cookies and stores user information in a SQLite database.
+* Suitable for using a local SQLite database file, registering/confirming users and managing public/user/admin pages.
 * Supports registration and confirmation via generated confirmation codes.
 * Tries to keep things simple.
 * Only supports "public", "user" and "admin" permissions out of the box, but offers functionality for implementing more fine grained permissions, if so desired.
@@ -20,11 +19,10 @@ Middleware for keeping track of users, login states and permissions.
 
 ## Connecting
 
-For connecting to a MariaDB/MySQL host that is running locally, the `New` function can be used. For connecting to a remote server, the `NewWithDSN` function can be used.
+For using a local sqlite database file running locally, the `New` function can be used.
 
 ## Requirements
 
-* MariaDB or MySQL
 * Go 1.17 or later
 
 ## Examples
@@ -41,14 +39,14 @@ import (
     "strings"
 
     "github.com/gin-gonic/gin"
-    "github.com/xyproto/permissionsql/v2"
+    "github.com/terminar/permissionsqlite/v2"
 )
 
 func main() {
     g := gin.New()
 
-    // New permissionsql middleware
-    perm, err := permissionsql.New()
+    // New permissionsqlite middleware
+    perm, err := permissionsqlite.New()
     if err != nil {
         log.Fatalln(err)
     }
@@ -72,7 +70,7 @@ func main() {
     // Logging middleware
     g.Use(gin.Logger())
 
-    // Enable the permissionsql middleware, must come before recovery
+    // Enable the permissionsqlite middleware, must come before recovery
     g.Use(permissionHandler)
 
     // Recovery middleware
@@ -157,7 +155,7 @@ import (
     "strings"
     "time"
 
-    "github.com/xyproto/permissionsql/v2"
+    "github.com/terminar/permissionsqlite/v2"
     "github.com/xyproto/pinterface"
 )
 
@@ -190,7 +188,7 @@ func main() {
     mux := http.NewServeMux()
 
     // New permissions middleware
-    perm, err := permissionsql.New()
+    perm, err := permissionsqlite.New()
     if err != nil {
         log.Fatalln(err)
     }
@@ -330,6 +328,7 @@ Using the `*pinterface.IUserState` type (from the [pinterface](https://github.co
 
 ## General information
 
-* Version: 2.1.2
+* Version: 1.0.0
 * License: BSD-3
 * Alexander F. Rødseth &lt;xyproto@archlinux.org&gt;
+* Björn Kalkbrenner &lt;terminar@cyberphoria.org&gt;
