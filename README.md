@@ -4,7 +4,7 @@ Middleware for keeping track of users, login states and permissions.
 
 ## Online API Documentation
 
-[godoc.org](http://godoc.org/github.com/terminar/permissionsqlite)
+[godoc.org](http://godoc.org/github.com/terminar/permissionsqlite/v2)
 
 ## Features and limitations
 
