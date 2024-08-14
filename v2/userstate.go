@@ -1,6 +1,7 @@
 package permissionsqlite
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -20,8 +21,11 @@ var (
 	minConfirmationCodeLength = 20 // minimum length of the confirmation code
 
 	ErrCookieGetUsername        = errors.New("Could not retrieve the username from browser cookie")
+	ErrContextGetUsername       = errors.New("Could not retrieve the username from the context")
 	ErrCookieEmptyUsername      = errors.New("Can't set cookie for empty username")
+	ErrContextEmptyUsername     = errors.New("Can't set context for empty username")
 	ErrCookieUserMissing        = errors.New("Can't store cookie for non-existsing user")
+	ErrContextUserMissing       = errors.New("Can't store context for non-existsing user")
 	ErrOutOfConfirmationCodes   = errors.New("Too many generated confirmation codes are not unique")
 	ErrAllUsersConfirmedAlready = errors.New("All existing users are already confirmed")
 	ErrConfirmationCodeExpired  = errors.New("The confirmation code is no longer valid")
@@ -114,8 +118,8 @@ func (state *UserState) Close() {
 
 // Check if the current user is logged in and has user rights.
 func (state *UserState) UserRights(req *http.Request) bool {
-	username, err := state.UsernameCookie(req)
-	if err != nil {
+	username := state.getUsername(req)
+	if username == "" {
 		return false
 	}
 	return state.IsLoggedIn(username)
@@ -174,10 +178,28 @@ func (state *UserState) IsLoggedIn(username string) bool {
 	return status == "true"
 }
 
+func (state *UserState) getUsername(req *http.Request) string {
+	username := ""
+
+	uname, err := state.UsernameContext(req)
+	if err == nil {
+		username = uname
+	}
+
+	if username == "" {
+		uname, err := state.UsernameCookie(req)
+		if err == nil {
+			username = uname
+		}
+	}
+
+	return username
+}
+
 // Check if the current user is logged in and has administrator rights.
 func (state *UserState) AdminRights(req *http.Request) bool {
-	username, err := state.UsernameCookie(req)
-	if err != nil {
+	username := state.getUsername(req)
+	if username == "" {
 		return false
 	}
 	return state.IsLoggedIn(username) && state.IsAdmin(username)
@@ -203,6 +225,28 @@ func (state *UserState) UsernameCookie(req *http.Request) (string, error) {
 	}
 	return "", ErrCookieGetUsername
 
+}
+
+// Retrieve the username that is stored in the request context
+func (state *UserState) UsernameContext(req *http.Request) (string, error) {
+	if username := req.Context().Value("user"); username != nil {
+		return username.(string), nil
+	}
+
+	return "", ErrContextGetUsername
+}
+
+// Store the given username in a cookie in the browser, if possible.
+// The user must exist.
+func (state *UserState) WrapUsernameInContext(req *http.Request, username string) (*http.Request, error) {
+	if username == "" {
+		return nil, ErrContextEmptyUsername
+	}
+	if !state.HasUser(username) {
+		return nil, ErrContextUserMissing
+	}
+	ctx := context.WithValue(req.Context(), "user", username)
+	return req.WithContext(ctx), nil
 }
 
 // Store the given username in a cookie in the browser, if possible.
@@ -338,11 +382,7 @@ func (state *UserState) Logout(username string) {
 
 // Convenience function that will return a username (from the browser cookie) or an empty string.
 func (state *UserState) Username(req *http.Request) string {
-	username, err := state.UsernameCookie(req)
-	if err != nil {
-		return ""
-	}
-	return username
+	return state.getUsername(req)
 }
 
 // Get how long a login cookie should last, in seconds.
